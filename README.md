@@ -1,74 +1,82 @@
+# Figura PhysBone API
+A cheap, easy to use, and highly customisable physics system.
+## Installation 
+To install the physBone API, simply add `physBoneAPI.lua` into your script. Obviously if you use autoScripts in avatar.json, add it there.
+## Basic Swing Physics
+Adding basics physics is simple. Just add the `physBone` prefix to the name of the group containing your model part/s. For example, a group part named `swingingLamp` could be renamed to `physBoneSwingingLamp` or `physBone_swingLamp`. Make sure the pivot point of this group is where you want the object to swing from. It's reccomended you put the pivot at the top of your parts, though if you need it to be at the bottom, you will need to use the physBone API to set the part as upside down. It's also reccomended you only have 1 folder / model inside your physBone for best performance. Once you've set the keyword, it should have physics in game!
+### Breast / Boob Physics
+There is an easy preset for breast physics. Just use the `physBoob` prefix instead of `physBone`. This is still a physBone, but will automatically be configued for breast physics.
+### Ear Physics
+Just like the breast physics preset, there's also the `physEar` preset for easy ear physics.
+## PhysBone API
+You can run many functions to customise how the physics behave, all of which will be described here.
 
-# SNS (Storage & Sync) System
+**These functions can't be executed before the player entity has loaded!!**
+The physBone API requires some entity information when scanning and generating its indexes and functions from your Blockbench file. Because of this, it only generates this in `entity_init()`. If you try and run these functions before the player entity is loaded, these indexes and functions simply won't exist, and it'll error. This just means you'll have to run these functions in `entity_init()` if you want to run at the beginning of your script. The tick, render, etc functions will all work just fine since they run after `entity_init()`. You will also need to require the `physBoneAPI` script to ensure it runs first obvioustly.
 
-SNS is a system that will automatically store your variables, ping them, and automatically sync them to prevent desync issues. This is achived by using the SNS System's functions and database, all of which are highly customisable. SNS also comes with a built in function to easily update model parts with your variables in the databases.
+When accessing a function with the physBone API, you'll need to enter your `partName`. This is not the path to your model part like it work in Figura's model part API. It is simply the name of your part. E.g. if your model part was `models.model.Head.physBoneHair`, you would just put `physBoneHair`. 
 
-I want this system to work for as many use cases as possible, so if I overlooked something and you can't use it for your use case, please let me know!
-
-## Initial Setup
-You'll need to make sure you've chosen a name for your config file to make things easier. In your main script at the top, add the line `config:name('CONFIG_NAME')`, where `CONFIG_NAME` is a name you've chosen for your config file.
-
-IMPORTANT: if later down the line you're erroring every time data auto-syncs, or your avatar system isn't behaving as expected, you may have corrupt or broken data stored in your config. Delete your config at `.minecraft/figura/congif/CONFIG_NAME`
-
-## Creating your variables
-First, you'll need to create your variables in the database. Add a new table to `snsData`, inside of `dataTables.lua`. It needs to include its ID as a child, and the value should match the table key. You can add your variables bellow the ID with what ever keys and values you like. For example:
+The functions in the physBone API are the following:
+### setUpsideDown()
+Sets this physBone to be upsidedown, meaning the pivot is at the bottom of the model instead of the top. For normal physBones, default is `false`, and the value is a boolean.
 ```lua
-snsData = {
-    exampleData = {
-        ID = "exampleData",
-        exampleVar = true,
-        exampleVar2 = vec(0,0,0),
-        exampleVar3 = "example"
-    }
-}
+physBone.partName:setUpsideDown(value)
 ```
-Once you've created your variables, you'll need to write the metadata for this table. This is just data about the variables that the SNS system or you can use that doesn't get synced or pinged. In the `snsMetadata` table (also in `dataTables.lua`), create a new table with the exact same name. Also create a child which has the ID. You will also need to create the `snsFunctions` child, which will tell the SNS System what functions to run when it syncs data. The `snsFunctions` child is a table, where the key is your variable keys from the main data table, and the value is the name of the function from `dataSync.lua` that you'll run on syncing, as a string. For example:
+### getUpsideDown()
+Returns if this physBone has been set to upsidedown as a boolean.
 ```lua
-snsMetaData = {
-    exampleData = {
-        ID = "exampleData",
-        snsFunctions = {
-            exampleVar = "exampleFunctionName",
-            exampleVar2 = "exampleFunctionName2",
-            exampleVar3 = "exampleFunctionName3"
-        }
-    }
-}
+physBone.partName:getUpsideDown()
 ```
-With these two tables, your data is set up!
-## Data Sync functions
-### Default Functions
-The SNS System comes with `dataSync.updatePart()` as a default function. To function correctly, it required variables be named like the model part api functions, though without `set` at the beginning. For example, to save a variable that will update a parts position, you'd simply name it `pos`.
-It also requires the model part path/s be included in the metadata. Model paths are stored as strings, formatted as bellow:
- ```lua
- paths = {'example.model.path.11','example.model.path.2'}
- ```
-You can find examples of usage of this function in the SNS System Example file.
-### Custom Functions
-You can easily create your own dataSync functions, and will need to in many cases. To create a new function, go to `dataSync.lua`, and create a new function with this formatting:
+### setGravity()
+Sets the strength of gravity for this physBone. For normal physBones, default is `-9.81`, and the value is a number.
 ```lua
-function dataSync.NAME_HERE(newEntryData,entryDataKey)
--- code here
-end
+physBone.partName:setGravity(value)
 ```
-The name used is in the `NAME_HERE` section is what will used in the `snsFunction` to call it. `newEntryData` is the data retrived from the ping, containing your variables. `entryDataKey` is the key of the variable that called this function.
-## Updating and Syncing your variables
-To initiate storing and syncing of your variables, you will need to call the `dataStore.generic()` function. This function will require the data ID as its first input, which is the ID used in the data table. For the second input it will need a table containig data for evey variable key, and the values inside which will be updated. For example:
+### getGravity()
+Returns the strength of gravity for this physBone as a number.
 ```lua
-    dataStore.generic("exampleData", {ID = {"exampleVar","exampleVar2"}, val = {false,vec(1,1,1)}})
+physBone.partName:getGravity()
 ```
-Only variables called will be updated, the rest will stay the same. The ID table's first ID should match the val table's first value, and so on. You can update as few or many variables as you like.
-## Technical Notes
-### Sync Speed
-You can update the speed at which the SNS system automatically syncs in `dataStore&Retrive.lua`, by updating the `syncInterval` variable. This is how many ticks are in between each sync. Keep in mind, the SNS system sincs variable groups one at a time, so you may want smaller intervals if you have many variable groups.
-### Action Wheel Toggle Syncing
-If you want action wheel toggles to sync correctly on reload, you can set the toggle with `toggle:setToggled(config:load("exampleData").exampleVar` where `exampleVar` has your boolean. Ensure this code will only run on the host with `if not host:isHost() then return end` (you shouild be doing this for the action wheel anyway) and include a check for if your config file hasn't been created yet, like the following:
+### setAirResistance()
+Sets the strength of air resistance for this physBone. For normal physBones, default is `0.1`, and the value is a number.
 ```lua
-if not config:load("exampleData") then
-    -- your dataStore.generic() function here for this var group
-end
+physBone.partName:setAirResistance(value)
 ```
-Set your dataStore function to just set the variables for the default state you'd expect the first time you load your avatar. Since these functions will be running on avatar initialisation, make sure you include `require("SNS_system.dataStore&Retrive")` at the top of your script, otherwise it will not be able to run the function. You can find examples of action wheel toggle syncing in the SNS System Example file.
-### Custom dataStore Functions
-If you need, you can also create your own datastore functions in `dataStore&Retrive`. The default function should work in most cases though. Just make sure any custom functions still save and ping the required data.
+### getAirResistance()
+Returns the strength of air resistance for this physBone as a number.
+```lua
+physBone.partName:getAirResistance()
+```
+### setSimSpeed()
+Sets the simulation speed for this physBone. For normal physBones, default is `1`, and the value is a number.
+```lua
+physBone.partName:setSimSpeed(value)
+```
+### getSimSpeed()
+Returns the simulation speed for this physBone as a number.
+```lua
+physBone.partName:getSimSpeed()
+```
+### setEquilibrium()
+Sets the equilibrium state of the spring force for this physBone. For normal physBones, default is `vec(0,0)`, and the value is a vector 2. The 2 values in the vector are rotations in degrees. The equilibrium is the state at which the spring force will always try and pull the pendulum towards.
+```lua
+physBone.partName:setEquilibrium(value)
+```
+### getEquilibrium()
+Returns the equilibrium state for this physBone as a vector 2.
+```lua
+physBone.partName:getEquilibrium()
+```
+### setSpringForce()
+Sets the strength of the spring force for this physBone. For normal physBones, default is `0`, and the value is a number.
+```lua
+physBone.partName:setSpringForce(value)
+```
+### getSpringForce()
+Returns the strength of the spring force for this physBone as a number.
+```lua
+physBone.partName:getSpringForce()
+```
 
+## Additional Notes
+If you find any issues I missed or have any featurs you think would be useful, please let me know and I'll see what I can do! You're also more than welcome to contribute to the project yourself if you'd like <33
